@@ -104,7 +104,7 @@ const Index: React.FC = () => {
           setIsListening(false);
         };
         
-        recognition.onerror = (event) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
           console.error('Speech recognition error', event.error);
           setIsListening(false);
           toast({
