@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,42 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Emotion-based colors
+				happy: {
+					light: '#FFD700',
+					DEFAULT: '#FFC107',
+					dark: '#FF9800'
+				},
+				sad: {
+					light: '#90CAF9',
+					DEFAULT: '#2196F3',
+					dark: '#1976D2'
+				},
+				angry: {
+					light: '#EF9A9A',
+					DEFAULT: '#F44336',
+					dark: '#D32F2F'
+				},
+				neutral: {
+					light: '#E0E0E0',
+					DEFAULT: '#9E9E9E',
+					dark: '#616161'
+				},
+				surprised: {
+					light: '#B39DDB',
+					DEFAULT: '#673AB7',
+					dark: '#512DA8'
+				},
+				fearful: {
+					light: '#9FA8DA',
+					DEFAULT: '#3F51B5',
+					dark: '#303F9F'
+				},
+				disgusted: {
+					light: '#A5D6A7',
+					DEFAULT: '#4CAF50',
+					dark: '#388E3C'
 				}
 			},
 			borderRadius: {
@@ -84,11 +121,21 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-slow': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
+				},
+				'bounce-light': {
+					'0%, 100%': { transform: 'translateY(-5%)' },
+					'50%': { transform: 'translateY(0)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+				'bounce-light': 'bounce-light 2s ease-in-out infinite'
 			}
 		}
 	},
