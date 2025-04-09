@@ -1,48 +1,27 @@
 
-// This file will handle downloading models as needed
+// This file handles downloading and serving models
+
+// CDN URLs for face-api.js models
+const MODEL_URLS = {
+  tinyFaceDetector: 'https://justadudewhohacks.github.io/face-api.js/models/tiny_face_detector_model-weights_manifest.json',
+  faceExpression: 'https://justadudewhohacks.github.io/face-api.js/models/face_expression_model-weights_manifest.json'
+};
 
 export const ensureModelsLoaded = async (): Promise<void> => {
-  const modelsDir = '/models';
-  const requiredModels = [
-    'tiny_face_detector_model-weights_manifest.json',
-    'face_expression_model-weights_manifest.json'
-  ];
-  
-  // Check if we need to download models
-  const needsDownload = await checkIfModelsExist(requiredModels);
-  
-  if (needsDownload) {
-    console.log('Models need to be downloaded. Starting download...');
-    await downloadModels();
-  } else {
-    console.log('Models already available');
-  }
+  console.log('Ensuring models are loaded from CDN...');
+  // No checks needed - we'll use direct CDN URLs instead of downloading
+  return Promise.resolve();
 };
 
-const checkIfModelsExist = async (modelFiles: string[]): Promise<boolean> => {
-  try {
-    // Check if at least one model file exists on the server
-    const testResponse = await fetch('/models/tiny_face_detector_model-weights_manifest.json', { method: 'HEAD' });
-    return testResponse.status !== 200;
-  } catch (e) {
-    // If error, assume models don't exist
-    return true;
+// Get model URL from CDN instead of local path
+export const getModelURL = (modelName: string): string => {
+  // Return CDN URL directly
+  if (modelName === 'tinyFaceDetector') {
+    return 'https://justadudewhohacks.github.io/face-api.js/models';
+  } else if (modelName === 'faceExpression') {
+    return 'https://justadudewhohacks.github.io/face-api.js/models';
   }
-};
-
-const downloadModels = async (): Promise<void> => {
-  // These URLs point to the models from the face-api.js repository
-  const tinyFaceDetectorUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/tiny_face_detector_model-weights_manifest.json';
-  const faceExpressionUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-weights_manifest.json';
   
-  // In a real implementation, we would download and save these files to the server
-  // For this demo, we'll just log that this would happen in a real app
-  console.log('In a production app, we would download models from:');
-  console.log('- Tiny Face Detector: ', tinyFaceDetectorUrl);
-  console.log('- Face Expression: ', faceExpressionUrl);
-  
-  // We'll simulate a delay to represent download time
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  console.log('Models downloaded successfully');
+  // Default to base CDN path if model name not recognized
+  return 'https://justadudewhohacks.github.io/face-api.js/models';
 };

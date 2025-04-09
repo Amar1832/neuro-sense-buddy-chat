@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as faceapi from 'face-api.js';
+import { getModelURL } from '@/services/modelService';
 
 type EmotionData = {
   happy: number;
@@ -28,19 +29,19 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const MODEL_URL = '/models';
+        // Use CDN URLs directly instead of trying to load from local files
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
         
-        // Create models directory if it doesn't exist
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
           faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
         ]);
         
         setIsModelLoaded(true);
-        console.log('Models loaded successfully');
+        console.log('Models loaded successfully from CDN');
       } catch (error) {
         console.error('Error loading models:', error);
-        setError('Failed to load emotion detection models. Please try refreshing the page.');
+        setError('Failed to load emotion detection models. Please check your internet connection.');
       }
     };
 
@@ -155,7 +156,7 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-10">
             <div className="text-white text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
-              <p>Loading emotion detection models...</p>
+              <p>Loading emotion detection models from CDN...</p>
             </div>
           </div>
         )}
