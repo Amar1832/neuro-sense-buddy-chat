@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EmotionDetector, { Emotion } from '@/components/EmotionDetector';
 import MessageBubble from '@/components/MessageBubble';
 import ChatInput from '@/components/ChatInput';
-import { getAIResponse, startSpeechRecognition, speakText } from '@/services/aiService';
+import { getAIResponse, startSpeechRecognition, speakText, getAvailableVoiceOptions, VoiceGender } from '@/services/aiService';
 import { Brain, Settings, Volume2, VolumeX } from 'lucide-react';
 import { ensureModelsLoaded } from '@/services/modelService';
 
@@ -25,6 +26,7 @@ const Index: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('neutral');
   const [userName, setUserName] = useState('Friend');
+  const [voiceGender, setVoiceGender] = useState<VoiceGender>('female');
   const [isListening, setIsListening] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -34,6 +36,7 @@ const Index: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const voiceOptions = getAvailableVoiceOptions();
 
   // Initialize with welcome message
   useEffect(() => {
@@ -186,7 +189,7 @@ const Index: React.FC = () => {
       
       // Read response aloud if TTS is enabled
       if (isTtsEnabled) {
-        speakText(response);
+        speakText(response, voiceGender);
       }
       
     } catch (error) {
@@ -201,14 +204,14 @@ const Index: React.FC = () => {
     }
   };
 
-  // Update user name
-  const handleUserNameChange = (e: React.FormEvent) => {
+  // Update user name and settings
+  const handleSettingsSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSettingsOpen(false);
     
     toast({
       title: "Settings Saved",
-      description: `Your name has been updated to ${userName}.`,
+      description: `Your preferences have been updated.`,
     });
   };
 
@@ -240,7 +243,7 @@ const Index: React.FC = () => {
                 <CardTitle>Settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleUserNameChange} className="space-y-4">
+                <form onSubmit={handleSettingsSave} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Your Name</Label>
                     <Input 
@@ -249,6 +252,25 @@ const Index: React.FC = () => {
                       onChange={(e) => setUserName(e.target.value)}
                       placeholder="Enter your name"
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="voice">Voice Gender</Label>
+                    <Select
+                      value={voiceGender}
+                      onValueChange={(value: VoiceGender) => setVoiceGender(value)}
+                    >
+                      <SelectTrigger id="voice">
+                        <SelectValue placeholder="Select voice gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {voiceOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex items-center justify-between">

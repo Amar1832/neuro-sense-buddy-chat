@@ -8,6 +8,9 @@ interface ChatMessage {
   emotion?: Emotion;
 }
 
+// Voice settings
+export type VoiceGender = 'female' | 'male';
+
 // This is a local implementation that doesn't require API keys
 // In production, this would connect to an API
 export const getAIResponse = async (
@@ -116,8 +119,8 @@ export const startSpeechRecognition = (): Promise<SpeechRecognition | null> => {
   });
 };
 
-// Text-to-speech service
-export const speakText = (text: string): void => {
+// Enhanced text-to-speech service with voice options
+export const speakText = (text: string, voiceGender: VoiceGender = 'female'): void => {
   if (!('speechSynthesis' in window)) {
     console.error('Text-to-speech not supported in this browser');
     return;
@@ -128,26 +131,83 @@ export const speakText = (text: string): void => {
 
   const utterance = new SpeechSynthesisUtterance(text);
   
-  // Get available voices
-  const voices = window.speechSynthesis.getVoices();
+  // Load available voices
+  let voices = window.speechSynthesis.getVoices();
   
-  // Try to find a female voice
-  const femaleVoice = voices.find(voice => 
-    voice.name.includes('female') || 
-    voice.name.includes('Samantha') || 
-    voice.name.includes('Victoria')
-  );
-  
-  // Set the voice to female if available, otherwise use default
-  if (femaleVoice) {
-    utterance.voice = femaleVoice;
+  // Sometimes voices aren't loaded immediately, so we wait for them
+  if (voices.length === 0) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      voices = window.speechSynthesis.getVoices();
+      setVoiceByGender(utterance, voices, voiceGender);
+    };
+  } else {
+    setVoiceByGender(utterance, voices, voiceGender);
   }
   
-  // Adjust speech parameters
-  utterance.rate = 1; // Speed (0.1 to 10)
-  utterance.pitch = 1; // Pitch (0 to 2)
-  utterance.volume = 1; // Volume (0 to 1)
+  // Adjust speech parameters for better quality
+  utterance.rate = 0.95; // Slightly slower for better clarity
+  utterance.pitch = voiceGender === 'female' ? 1.05 : 0.95; // Slight pitch adjustment
+  utterance.volume = 1; // Full volume
   
   window.speechSynthesis.speak(utterance);
 };
 
+// Helper function to find and set the best voice by gender
+const setVoiceByGender = (
+  utterance: SpeechSynthesisUtterance, 
+  voices: SpeechSynthesisVoice[], 
+  gender: VoiceGender
+): void => {
+  // Premium voice names that typically sound better
+  const premiumVoiceKeywords = [
+    'Google', 'Premium', 'Enhanced', 'Microsoft', 'Natural', 'Neural'
+  ];
+
+  // Define gender-specific voice keywords
+  const femaleKeywords = ['female', 'woman', 'girl', 'Samantha', 'Victoria', 'Karen', 'Tessa', 'Moira', 'Veena'];
+  const maleKeywords = ['male', 'man', 'guy', 'Daniel', 'David', 'Thomas', 'Alex', 'Matthew', 'James'];
+  
+  const genderKeywords = gender === 'female' ? femaleKeywords : maleKeywords;
+  
+  // First try to find premium voices of requested gender
+  let selectedVoice = voices.find(voice => {
+    const voiceName = voice.name.toLowerCase();
+    const isPremium = premiumVoiceKeywords.some(keyword => voiceName.includes(keyword.toLowerCase()));
+    const isMatchingGender = genderKeywords.some(keyword => voiceName.includes(keyword.toLowerCase()));
+    return isPremium && isMatchingGender;
+  });
+  
+  // If no premium gender-specific voice found, try any of the requested gender
+  if (!selectedVoice) {
+    selectedVoice = voices.find(voice => {
+      return genderKeywords.some(keyword => voice.name.toLowerCase().includes(keyword.toLowerCase()));
+    });
+  }
+  
+  // If still no voice found, try any premium voice
+  if (!selectedVoice) {
+    selectedVoice = voices.find(voice => {
+      return premiumVoiceKeywords.some(keyword => voice.name.toLowerCase().includes(keyword.toLowerCase()));
+    });
+  }
+  
+  // Fall back to any non-default voice or the first available voice
+  if (!selectedVoice && voices.length > 1) {
+    selectedVoice = voices[1]; // Skip the default voice (usually index 0)
+  } else if (!selectedVoice && voices.length > 0) {
+    selectedVoice = voices[0];
+  }
+  
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    console.log(`Selected voice: ${selectedVoice.name} (${gender})`);
+  }
+};
+
+// Get available voice options for the UI
+export const getAvailableVoiceOptions = (): { label: string, value: VoiceGender }[] => {
+  return [
+    { label: 'Female', value: 'female' },
+    { label: 'Male', value: 'male' }
+  ];
+};
