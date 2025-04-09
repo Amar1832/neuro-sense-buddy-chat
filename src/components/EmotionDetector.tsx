@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as faceapi from 'face-api.js';
 import { getModelURL } from '@/services/modelService';
@@ -27,6 +28,7 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
   
   const recentEmotionsRef = useRef<Array<{emotion: Emotion, confidence: number}>>([]);
   const detectionCountRef = useRef(0);
+  const angryConsecutiveFramesRef = useRef(0);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -99,10 +101,11 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
         emotionCounts[emotion].totalConfidence += confidence;
       });
       
+      // Updated emotion weights with a stronger emphasis on angry
       const EMOTION_WEIGHTS = {
         happy: 1.0,
-        sad: 1.4,
-        angry: 1.5,
+        sad: 1.3,
+        angry: 1.7,  // Increased from 1.5 to 1.7
         fearful: 1.4,
         disgusted: 1.5,
         surprised: 1.3,
@@ -116,13 +119,27 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
         if (count === 0) return;
         
         const avgConfidence = totalConfidence / count;
-        const weighted = avgConfidence * EMOTION_WEIGHTS[emotion as Emotion] * (count / recentEmotions.length);
+        
+        // Special handling for angry emotion to make it more sensitive
+        let weighted = avgConfidence * EMOTION_WEIGHTS[emotion as Emotion] * (count / recentEmotions.length);
+        
+        // Boost angry detection if there's a consistent pattern
+        if (emotion === 'angry' && angryConsecutiveFramesRef.current > 2) {
+          weighted *= 1.2;  // Additional 20% boost for consistent angry detection
+        }
         
         if (weighted > bestScore) {
           bestScore = weighted;
           bestEmotion = emotion as Emotion;
         }
       });
+      
+      // Update consecutive angry frames counter
+      if (bestEmotion === 'angry') {
+        angryConsecutiveFramesRef.current++;
+      } else {
+        angryConsecutiveFramesRef.current = 0;
+      }
       
       const avgConfidence = emotionCounts[bestEmotion].count > 0 
         ? emotionCounts[bestEmotion].totalConfidence / emotionCounts[bestEmotion].count 
@@ -137,7 +154,7 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
       if (videoRef.current.paused || videoRef.current.ended) return;
       
       const options = new faceapi.TinyFaceDetectorOptions({ 
-        inputSize: 320,
+        inputSize: 416,  // Increased from 320 to 416 for better detection
         scoreThreshold: 0.5 
       });
       
@@ -150,14 +167,40 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
         if (detections && detections.length > 0) {
           const expressions = detections[0].expressions;
           
+          // Enhanced adjustment for angry emotion detection
           const adjustedExpressions: EmotionData = {
             ...expressions as EmotionData,
             sad: expressions.sad * 1.2,
-            angry: expressions.angry * 1.3,
+            angry: expressions.angry * 1.65,  // Increased from 1.3 to 1.65
             fearful: expressions.fearful * 1.2,
             disgusted: expressions.disgusted * 1.3,
             surprised: expressions.surprised * 1.2
           };
+          
+          // Additional check for furrowed brow (often correlated with anger)
+          if (detections[0].landmarks) {
+            const landmarks = detections[0].landmarks.positions;
+            // Check eyebrow landmarks (positions 18-22 and 23-27 are eyebrows)
+            // If eyebrows are lowered, boost anger score
+            if (landmarks && landmarks.length >= 27) {
+              const leftEyePos = landmarks[37];  // Left eye
+              const rightEyePos = landmarks[44]; // Right eye
+              const leftBrowPos = landmarks[21]; // Left eyebrow
+              const rightBrowPos = landmarks[24]; // Right eyebrow
+              
+              // Calculate brow to eye distance (lower when angry)
+              if (leftEyePos && leftBrowPos && rightEyePos && rightBrowPos) {
+                const leftDist = leftEyePos.y - leftBrowPos.y;
+                const rightDist = rightEyePos.y - rightBrowPos.y;
+                const avgDist = (leftDist + rightDist) / 2;
+                
+                // If brows are closer to eyes, likely angry/frowning
+                if (avgDist < 15) {
+                  adjustedExpressions.angry *= 1.3;
+                }
+              }
+            }
+          }
           
           const dominantEmotion = Object.keys(adjustedExpressions).reduce((a, b) => 
             adjustedExpressions[a as keyof EmotionData] > adjustedExpressions[b as keyof EmotionData] ? a : b
@@ -166,12 +209,12 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
           const confidence = expressions[dominantEmotion];
           
           recentEmotionsRef.current.push({ emotion: dominantEmotion, confidence });
-          if (recentEmotionsRef.current.length > 10) {
+          if (recentEmotionsRef.current.length > 12) {  // Increased buffer from 10 to 12
             recentEmotionsRef.current.shift();
           }
           
           detectionCountRef.current++;
-          if (detectionCountRef.current % 5 === 0 && recentEmotionsRef.current.length >= 3) {
+          if (detectionCountRef.current % 4 === 0 && recentEmotionsRef.current.length >= 3) {  // Process every 4 frames instead of 5
             const reliableEmotion = calculateMostReliableEmotion(recentEmotionsRef.current);
             onEmotionDetected(reliableEmotion.emotion, reliableEmotion.confidence);
           } else if (recentEmotionsRef.current.length < 3) {
