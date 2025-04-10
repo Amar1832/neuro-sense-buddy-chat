@@ -1,4 +1,3 @@
-
 import { Emotion } from '@/components/EmotionDetector';
 
 interface ChatMessage {
@@ -10,6 +9,14 @@ interface ChatMessage {
 
 // Voice settings
 export type VoiceGender = 'female' | 'male';
+export type VoiceAccent = 'standard' | 'british' | 'australian' | 'indian';
+
+export interface VoiceOption {
+  id: string;
+  name: string; 
+  gender: VoiceGender;
+  accent?: VoiceAccent;
+}
 
 // This is a local implementation that doesn't require API keys
 // In production, this would connect to an API
@@ -119,8 +126,8 @@ export const startSpeechRecognition = (): Promise<SpeechRecognition | null> => {
   });
 };
 
-// Enhanced text-to-speech service with voice options
-export const speakText = (text: string, voiceGender: VoiceGender = 'female'): void => {
+// Enhanced text-to-speech service with premium voice options
+export const speakText = (text: string, voiceId?: string, voiceGender: VoiceGender = 'female'): void => {
   if (!('speechSynthesis' in window)) {
     console.error('Text-to-speech not supported in this browser');
     return;
@@ -138,10 +145,18 @@ export const speakText = (text: string, voiceGender: VoiceGender = 'female'): vo
   if (voices.length === 0) {
     window.speechSynthesis.onvoiceschanged = () => {
       voices = window.speechSynthesis.getVoices();
-      setVoiceByGender(utterance, voices, voiceGender);
+      if (voiceId) {
+        setVoiceById(utterance, voices, voiceId);
+      } else {
+        setVoiceByGender(utterance, voices, voiceGender);
+      }
     };
   } else {
-    setVoiceByGender(utterance, voices, voiceGender);
+    if (voiceId) {
+      setVoiceById(utterance, voices, voiceId);
+    } else {
+      setVoiceByGender(utterance, voices, voiceGender);
+    }
   }
   
   // Adjust speech parameters for better quality
@@ -150,6 +165,22 @@ export const speakText = (text: string, voiceGender: VoiceGender = 'female'): vo
   utterance.volume = 1; // Full volume
   
   window.speechSynthesis.speak(utterance);
+};
+
+// Set voice by specific ID
+const setVoiceById = (
+  utterance: SpeechSynthesisUtterance, 
+  voices: SpeechSynthesisVoice[], 
+  voiceId: string
+): void => {
+  const selectedVoice = voices.find(voice => voice.voiceURI === voiceId);
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    console.log(`Selected specific voice: ${selectedVoice.name}`);
+  } else {
+    console.warn(`Voice with ID ${voiceId} not found, falling back to default`);
+    setVoiceByGender(utterance, voices, 'female');
+  }
 };
 
 // Helper function to find and set the best voice by gender
@@ -205,9 +236,59 @@ const setVoiceByGender = (
 };
 
 // Get available voice options for the UI
-export const getAvailableVoiceOptions = (): { label: string, value: VoiceGender }[] => {
-  return [
-    { label: 'Female Voice', value: 'female' },
-    { label: 'Male Voice', value: 'male' }
-  ];
+export const getAvailableVoiceOptions = (): VoiceOption[] => {
+  if (!('speechSynthesis' in window)) {
+    return [
+      { id: 'female-default', name: 'Female Voice', gender: 'female' },
+      { id: 'male-default', name: 'Male Voice', gender: 'male' }
+    ];
+  }
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    return [
+      { id: 'female-default', name: 'Female Voice', gender: 'female' },
+      { id: 'male-default', name: 'Male Voice', gender: 'male' }
+    ];
+  }
+
+  // Filter to get only high-quality English voices
+  const qualityVoices = voices
+    .filter(voice => voice.lang.startsWith('en'))
+    .map(voice => {
+      const name = voice.name;
+      const isFemale = name.toLowerCase().includes('female') || 
+                       voice.name.includes('Karen') || 
+                       voice.name.includes('Victoria') || 
+                       voice.name.includes('Samantha') || 
+                       voice.name.includes('Moira');
+                      
+      let accent: VoiceAccent = 'standard';
+      if (voice.lang === 'en-GB') accent = 'british';
+      else if (voice.lang === 'en-AU') accent = 'australian';
+      else if (voice.lang === 'en-IN') accent = 'indian';
+      
+      return {
+        id: voice.voiceURI,
+        name: voice.name,
+        gender: isFemale ? 'female' : 'male' as VoiceGender,
+        accent
+      };
+    });
+
+  // Sort with premium voices first, then by gender
+  return qualityVoices.sort((a, b) => {
+    const isPremiumA = a.name.includes('Google') || a.name.includes('Premium') || a.name.includes('Neural');
+    const isPremiumB = b.name.includes('Google') || b.name.includes('Premium') || b.name.includes('Neural');
+    
+    if (isPremiumA && !isPremiumB) return -1;
+    if (!isPremiumA && isPremiumB) return 1;
+    
+    // If same premium status, sort by gender (female first)
+    if (a.gender === 'female' && b.gender === 'male') return -1;
+    if (a.gender === 'male' && b.gender === 'female') return 1;
+    
+    // If same gender, sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
 };
