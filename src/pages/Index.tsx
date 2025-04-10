@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import EmotionDetector, { Emotion } from '@/components/EmotionDetector';
 import MessageBubble from '@/components/MessageBubble';
 import ChatInput from '@/components/ChatInput';
 import { getAIResponse, startSpeechRecognition, speakText, getAvailableVoiceOptions, VoiceGender } from '@/services/aiService';
-import { Brain, Settings, Volume2, VolumeX } from 'lucide-react';
+import { Brain, Mic, Settings, Volume2, VolumeX, Camera } from 'lucide-react';
 import { ensureModelsLoaded } from '@/services/modelService';
 
 interface Message {
@@ -38,10 +37,8 @@ const Index: React.FC = () => {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const voiceOptions = getAvailableVoiceOptions();
 
-  // Initialize with welcome message
   useEffect(() => {
     if (isFirstLoad) {
-      // Add an initial welcome message
       const welcomeMessage: Message = {
         id: Date.now().toString(),
         text: `Hi there! I'm NeuroSense, your emotion-aware AI buddy. I can sense how you're feeling and respond accordingly. Try enabling your camera and microphone to get the full experience!`,
@@ -53,38 +50,31 @@ const Index: React.FC = () => {
       setMessages([welcomeMessage]);
       setIsFirstLoad(false);
       
-      // Pre-load models
       ensureModelsLoaded().catch(error => {
         console.error('Failed to ensure models are loaded:', error);
       });
     }
   }, [isFirstLoad]);
 
-  // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle emotion updates
   const handleEmotionDetected = (emotion: Emotion, confidence: number) => {
-    // Only update if confidence is high enough and emotion has changed
     if (confidence > 0.5 && emotion !== currentEmotion) {
       setCurrentEmotion(emotion);
       console.log(`Emotion detected: ${emotion} (confidence: ${confidence.toFixed(2)})`);
     }
   };
 
-  // Toggle microphone listening
   const toggleListening = async () => {
     if (isListening) {
-      // Stop listening
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
       setIsListening(false);
     } else {
-      // Start listening
       try {
         const recognition = await startSpeechRecognition();
         
@@ -134,24 +124,19 @@ const Index: React.FC = () => {
     }
   };
 
-  // Toggle camera
   const toggleCamera = () => {
     setIsCameraActive(!isCameraActive);
   };
 
-  // Toggle text-to-speech
   const toggleTts = () => {
     setIsTtsEnabled(!isTtsEnabled);
     
     if (isTtsEnabled) {
-      // Stop any current speech when turning off TTS
       window.speechSynthesis?.cancel();
     }
   };
 
-  // Send message
   const handleSendMessage = async (text: string) => {
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text,
@@ -163,7 +148,6 @@ const Index: React.FC = () => {
     setIsProcessing(true);
     
     try {
-      // Get AI response based on current emotion
       const response = await getAIResponse(
         text, 
         currentEmotion, 
@@ -176,7 +160,6 @@ const Index: React.FC = () => {
         userName
       );
       
-      // Add AI response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response,
@@ -187,7 +170,6 @@ const Index: React.FC = () => {
       
       setMessages(prev => [...prev, aiMessage]);
       
-      // Read response aloud if TTS is enabled
       if (isTtsEnabled) {
         speakText(response, voiceGender);
       }
@@ -204,7 +186,6 @@ const Index: React.FC = () => {
     }
   };
 
-  // Update user name and settings
   const handleSettingsSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSettingsOpen(false);
@@ -255,13 +236,13 @@ const Index: React.FC = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="voice">Voice Gender</Label>
+                    <Label htmlFor="voice">Voice Type</Label>
                     <Select
                       value={voiceGender}
                       onValueChange={(value: VoiceGender) => setVoiceGender(value)}
                     >
-                      <SelectTrigger id="voice">
-                        <SelectValue placeholder="Select voice gender" />
+                      <SelectTrigger id="voice" className="w-full">
+                        <SelectValue placeholder="Select voice type" />
                       </SelectTrigger>
                       <SelectContent>
                         {voiceOptions.map((option) => (

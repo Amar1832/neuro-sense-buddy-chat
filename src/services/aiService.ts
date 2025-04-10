@@ -207,7 +207,7 @@ const setVoiceByGender = (
 // Get available voice options for the UI
 export const getAvailableVoiceOptions = (): { label: string, value: VoiceGender }[] => {
   return [
-    { label: 'Female', value: 'female' },
-    { label: 'Male', value: 'male' }
+    { label: 'Female Voice', value: 'female' },
+    { label: 'Male Voice', value: 'male' }
   ];
 };
