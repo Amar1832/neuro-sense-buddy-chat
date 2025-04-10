@@ -246,8 +246,8 @@ const Index: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {voiceOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                          <SelectItem key={option.id} value={option.gender}>
+                            {option.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
