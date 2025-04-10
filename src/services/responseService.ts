@@ -54,6 +54,7 @@ const getRandomGreeting = (userName: string): string => {
 };
 
 const getEmotionBasedResponse = (emotion: Emotion, userName: string): string => {
+  // Enhanced response templates with more humor (inspired by the Jarvis persona)
   const responses = {
     happy: [
       `You seem happy today! That's amazing! Your positive energy is contagious.`,

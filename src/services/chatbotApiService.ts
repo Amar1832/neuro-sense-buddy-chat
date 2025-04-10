@@ -12,6 +12,10 @@ const API_CONFIG = {
   timeoutMs: 10000,
 };
 
+// Groq API key - in production, this should be stored securely
+// For this demo, we're using a sample key format (not a real key)
+const GROQ_API_KEY = "YOUR_GROQ_API_KEY"; // Replace with your actual key
+
 /**
  * Send a message to the chatbot API and get a response
  * @param message The user's message
@@ -41,7 +45,7 @@ export const getChatbotResponse = async (
     
     // In a real implementation, this would be a fetch call to an actual API
     // For now, we'll simulate a response to demonstrate the flow
-    const response = await simulateChatbotApiCall(payload);
+    const response = await simulateGroqApiCall(payload);
     
     return response;
   } catch (error) {
@@ -52,43 +56,51 @@ export const getChatbotResponse = async (
 };
 
 /**
- * Simulate an API call to a chatbot service
+ * Simulate an API call to the Groq chatbot service
  * In production, this would be replaced with a real API call
  */
-const simulateChatbotApiCall = async (payload: any): Promise<string> => {
+const simulateGroqApiCall = async (payload: any): Promise<string> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   const { message, emotion, userName } = payload;
   
-  // Simple response generation based on message content
-  if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
-    return `Hello ${userName}! How can I assist you today?`;
-  }
+  // Simulating a Groq AI response based on emotion and message
+  const systemPrompt = `You are Jarvis, ${userName}'s humorous AI companion. Respond with humor based on detected emotion:
+    - Happy: Playfully joke and be cheerful.
+    - Sad: Offer humorous support and motivational jokes.
+    - Angry: Calm with humor and funny distractions.
+    - Surprise: React with amusing curiosity.
+    - Fear or Disgust: Provide funny reassurance.
+    - Neutral: Be friendly and humorous.`;
   
-  if (message.toLowerCase().includes('help')) {
-    return `I'm here to help you, ${userName}. What would you like to know about?`;
-  }
+  // In production, this would make an actual API call to Groq
+  console.log('System prompt:', systemPrompt);
+  console.log(`User emotion: ${emotion}, Message: ${message}`);
   
-  if (message.toLowerCase().includes('weather')) {
-    return `I don't have access to real-time weather data, but I can suggest checking a weather service for the most up-to-date information.`;
-  }
-  
-  if (message.toLowerCase().includes('thank')) {
-    return `You're welcome, ${userName}! Is there anything else I can help with?`;
-  }
-  
-  // Emotion-based responses
+  // Simple simulated response based on emotion
   if (emotion === 'happy') {
-    return `I'm glad you're feeling good today, ${userName}! Your positive energy is contagious.`;
+    return `Hey there, sunshine ${userName}! You're looking particularly radiant today. Must be all those endorphins doing cartwheels in your brain! About "${message}" - that's absolutely fantastic! Let's ride this happiness wave together!`;
   }
   
   if (emotion === 'sad') {
-    return `I notice you might be feeling down, ${userName}. Remember that it's okay to have off days, and I'm here if you want to talk about it.`;
+    return `Hey ${userName}, I see those cloudy vibes. Remember, even the grumpiest cat videos can make us smile! Regarding "${message}" - here's a little pick-me-up: What did the ocean say to the beach? Nothing, it just waved! Too cheesy? Well, at least it's not as salty as the ocean!`;
   }
   
-  // Default response
-  return `Thanks for your message, ${userName}. I'm still learning, but I'm here to chat with you about anything on your mind.`;
+  if (emotion === 'angry') {
+    return `Whoa there, ${userName}! I can practically see the steam coming out of your ears! Deep breaths... in through the nose, out through the mouth. About "${message}" - let's look at the bright side: at least you're burning calories while fuming! Anger: nature's workout program!`;
+  }
+  
+  if (emotion === 'surprised') {
+    return `Well well well, ${userName}! Your face is doing that shocked emoji thing! About "${message}" - plot twist, right? Life's just a box of chocolates with occasional exploding ones!`;
+  }
+  
+  if (emotion === 'fearful' || emotion === 'disgusted') {
+    return `I see you're having one of THOSE moments, ${userName}. Don't worry - about 99% of the things we fear never actually happen! Regarding "${message}" - remember, even if things get weird, at least we'll have a funny story to tell later!`;
+  }
+  
+  // Default neutral response
+  return `Hello there, ${userName}! You're looking perfectly neutral today - very zen! About "${message}" - that's quite interesting! Did you know that the average person spends 6 months of their life waiting at traffic lights? Not relevant? Well, my random fact generator is feeling chatty today!`;
 };
 
 /**
