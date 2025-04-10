@@ -134,8 +134,8 @@ const EmotionDetector: React.FC<EmotionDetectorProps> = ({ onEmotionDetected, is
         }
       });
       
-      // Update consecutive angry frames counter - Fix the type comparison issue here
-      if (bestEmotion === 'angry') {
+      // Update consecutive angry frames counter - Fix the type comparison issue
+      if (bestEmotion === 'angry' as Emotion) {
         angryConsecutiveFramesRef.current++;
       } else {
         angryConsecutiveFramesRef.current = 0;
