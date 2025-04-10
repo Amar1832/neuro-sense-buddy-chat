@@ -4,3 +4,4 @@ export * from './types';
 export * from './responseService';
 export * from './speechRecognitionService';
 export * from './textToSpeechService';
+export * from './chatbotApiService';

@@ -1,19 +1,33 @@
 
 import { ChatMessage, VoiceGender } from './types';
 import { Emotion } from '@/components/EmotionDetector';
+import { getChatbotResponse } from './chatbotApiService';
 
-// This is a local implementation that doesn't require API keys
-// In production, this would connect to an API
+// Configuration flag to determine whether to use the API or local implementation
+const USE_CHATBOT_API = true;
+
+// This service handles getting responses either from the API or a local implementation
 export const getAIResponse = async (
   message: string, 
   emotion: Emotion,
   chatHistory: ChatMessage[],
   userName: string = "friend"
 ): Promise<string> => {
+  // If using the chatbot API, call the API service
+  if (USE_CHATBOT_API) {
+    try {
+      return await getChatbotResponse(message, emotion, chatHistory, userName);
+    } catch (error) {
+      console.error('Error from chatbot API, falling back to local implementation:', error);
+      // If API fails, fall back to local implementation
+    }
+  }
+  
+  // Local implementation as fallback or if API is disabled
   // Simulated delay to mimic API call
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  console.log(`Generating response based on emotion: ${emotion}`);
+  console.log(`Generating local response based on emotion: ${emotion}`);
 
   // Generate context-aware greeting based on message length
   const greeting = message.length < 10 
