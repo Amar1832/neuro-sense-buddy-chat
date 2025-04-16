@@ -11,7 +11,7 @@ export const getAIResponse = async (
   message: string, 
   emotion: Emotion,
   chatHistory: ChatMessage[],
-  userName: string = "friend"
+  userName: string = "Amar" // Default to Amar as in the Python code
 ): Promise<string> => {
   // If using the chatbot API, call the API service
   if (USE_CHATBOT_API) {

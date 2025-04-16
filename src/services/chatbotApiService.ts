@@ -4,11 +4,15 @@ import { ChatMessage } from './types';
 // API endpoint URL for Groq API
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+// Groq API key - this should be replaced with your actual API key in production
+// For now, using the one from the Python code provided by the user
+const GROQ_API_KEY = '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';
+
 // Configuration for API requests
 const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${process.env.GROQ_API_KEY || 'YOUR_GROQ_API_KEY'}` // API key should be in env variables
+    'Authorization': `Bearer ${GROQ_API_KEY}`
   },
   timeoutMs: 10000,
 };
@@ -25,7 +29,7 @@ export const getChatbotResponse = async (
   message: string,
   emotion: string,
   chatHistory: ChatMessage[],
-  userName: string = "friend"
+  userName: string = "Amar" // Default to Amar as seen in the Python code
 ): Promise<string> => {
   try {
     console.log('Sending request to Groq API with emotion:', emotion);
@@ -58,8 +62,13 @@ export const getChatbotResponse = async (
       top_p: 0.95
     };
 
+    // Check if we're in development mode based on URL
+    const isDevelopment = 
+      window.location.hostname === 'localhost' || 
+      window.location.hostname.includes('lovableproject.com');
+    
     // In production environment, make an actual API call
-    if (process.env.NODE_ENV === 'production') {
+    if (!isDevelopment) {
       const response = await fetch(GROQ_API_URL, {
         method: 'POST',
         headers: API_CONFIG.headers,
