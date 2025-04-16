@@ -5,6 +5,7 @@ import { getChatbotResponse } from './chatbotApiService';
 import { toast } from '@/hooks/use-toast';
 
 // Configuration flag to determine whether to use the API or local implementation
+// Setting to true to ensure we always try the API first
 const USE_CHATBOT_API = true;
 
 // This service handles getting responses either from the API or a local implementation
@@ -18,7 +19,8 @@ export const getAIResponse = async (
   if (USE_CHATBOT_API) {
     try {
       console.log('Attempting to get response from chatbot API...');
-      return await getChatbotResponse(message, emotion, chatHistory, userName);
+      const response = await getChatbotResponse(message, emotion, chatHistory, userName);
+      return response;
     } catch (error) {
       console.error('Error from chatbot API, falling back to local implementation:', error);
       // If API fails, show a toast notification

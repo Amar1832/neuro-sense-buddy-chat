@@ -1,6 +1,7 @@
 
 import { ChatMessage } from './types';
 import { Emotion } from '@/components/EmotionDetector';
+import { toast } from '@/hooks/use-toast';
 
 // API endpoint URL for Groq API
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -63,13 +64,18 @@ export const getChatbotResponse = async (
       top_p: 0.95
     };
 
+    // IMPORTANT: Always attempt a real API call for better user experience
+    // Setting to false to force API calls
+    const forceDevelopmentMode = false;
+    
     // Check if we're in development mode based on URL
-    const isDevelopment = 
+    const isDevelopment = forceDevelopmentMode || 
       window.location.hostname === 'localhost' || 
       window.location.hostname.includes('lovableproject.com');
     
     let responseText;
-    // In production environment, make an actual API call
+    
+    // In production environment or when forcing real API calls, make an actual API call
     if (!isDevelopment) {
       console.log('Production mode: Calling actual Groq API');
       try {
@@ -80,14 +86,26 @@ export const getChatbotResponse = async (
         });
 
         if (!response.ok) {
-          console.error(`API request failed with status ${response.status}`);
+          const errorText = await response.text();
+          console.error(`API request failed with status ${response.status}:`, errorText);
+          toast({
+            title: "API Connection Failed",
+            description: `Failed to connect to Groq API (${response.status}). Using fallback responses.`,
+            variant: "destructive",
+          });
           return simulateGroqApiCall(payload); // Fallback to simulation on API failure
         }
 
         const data = await response.json();
         responseText = data.choices[0].message.content.trim();
+        console.log('API response successful:', responseText.substring(0, 50) + '...');
       } catch (error) {
         console.error('Error in API call:', error);
+        toast({
+          title: "API Connection Error",
+          description: "Network error connecting to Groq API. Using fallback responses.",
+          variant: "destructive",
+        });
         return simulateGroqApiCall(payload); // Fallback to simulation on exception
       }
     } else {
@@ -100,6 +118,11 @@ export const getChatbotResponse = async (
     return responseText;
   } catch (error) {
     console.error('Error in chatbot service:', error);
+    toast({
+      title: "Service Error",
+      description: "Something went wrong with the chat service. Using local responses.",
+      variant: "destructive",
+    });
     // Fallback to local response generation if API fails
     return getFallbackResponse(message, emotion, userName);
   }
