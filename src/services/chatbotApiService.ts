@@ -51,7 +51,7 @@ export const getChatbotResponse = async (
 
     // Create the request to Groq
     const payload = {
-      model: "mixtral-8x7b-32768", // Using Mixtral model as specified in the Python code
+      model: "llama3-8b-8192", // Updated to a currently supported model
       messages: [
         { role: "system", content: systemPrompt },
         ...recentMessages,
