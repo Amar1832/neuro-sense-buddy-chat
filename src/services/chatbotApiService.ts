@@ -1,20 +1,17 @@
 
 import { ChatMessage } from './types';
 
-// API endpoint URL - in production, this would be a real API endpoint
-const API_URL = 'https://api.example.com/chatbot';
+// API endpoint URL for Groq API
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Configuration for API requests
 const API_CONFIG = {
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.GROQ_API_KEY || 'YOUR_GROQ_API_KEY'}` // API key should be in env variables
   },
   timeoutMs: 10000,
 };
-
-// Groq API key - in production, this should be stored securely
-// For this demo, we're using a sample key format (not a real key)
-const GROQ_API_KEY = "YOUR_GROQ_API_KEY"; // Replace with your actual key
 
 /**
  * Send a message to the chatbot API and get a response
@@ -31,23 +28,55 @@ export const getChatbotResponse = async (
   userName: string = "friend"
 ): Promise<string> => {
   try {
-    // Create payload for the API
+    console.log('Sending request to Groq API with emotion:', emotion);
+    
+    // Build the system prompt based on the emotion
+    const systemPrompt = `You are Jarvis, ${userName}'s humorous AI companion. Respond with humor based on detected emotion:
+      - Happy: Playfully joke and be cheerful.
+      - Sad: Offer humorous support and motivational jokes.
+      - Angry: Calm with humor and funny distractions.
+      - Surprise: React with amusing curiosity.
+      - Fear or Disgust: Provide funny reassurance.
+      - Neutral: Be friendly and humorous.`;
+    
+    // Format messages for Groq's expected structure
+    const recentMessages = chatHistory.slice(-5).map(msg => ({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.text
+    }));
+
+    // Create the request to Groq
     const payload = {
-      message,
-      emotion,
-      chatHistory: chatHistory.slice(-10), // Send the last 10 messages for context
-      userName,
-      timestamp: new Date().toISOString(),
+      model: "mixtral-8x7b-32768", // Using Mixtral model as specified in the Python code
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...recentMessages,
+        { role: "user", content: `I am feeling ${emotion}. Also, ${message}` }
+      ],
+      temperature: 0.7,
+      max_tokens: 150,
+      top_p: 0.95
     };
 
-    // Simulate API call with a timeout to simulate network latency
-    console.log('Sending request to chatbot API:', payload);
-    
-    // In a real implementation, this would be a fetch call to an actual API
-    // For now, we'll simulate a response to demonstrate the flow
-    const response = await simulateGroqApiCall(payload);
-    
-    return response;
+    // In production environment, make an actual API call
+    if (process.env.NODE_ENV === 'production') {
+      const response = await fetch(GROQ_API_URL, {
+        method: 'POST',
+        headers: API_CONFIG.headers,
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    } else {
+      // For development, use simulated response
+      console.log('Development mode: Simulating Groq API response');
+      return simulateGroqApiCall(payload);
+    }
   } catch (error) {
     console.error('Error calling chatbot API:', error);
     // Fallback to local response generation if API fails
@@ -63,44 +92,34 @@ const simulateGroqApiCall = async (payload: any): Promise<string> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  const { message, emotion, userName } = payload;
+  const userMessage = payload.messages[payload.messages.length - 1].content;
+  const emotionMatch = userMessage.match(/I am feeling (\w+)/);
+  const emotion = emotionMatch ? emotionMatch[1].toLowerCase() : 'neutral';
+  const userName = payload.messages[0].content.match(/You are Jarvis, (.+?)'s/)?.[1] || 'friend';
   
-  // Simulating a Groq AI response based on emotion and message
-  const systemPrompt = `You are Jarvis, ${userName}'s humorous AI companion. Respond with humor based on detected emotion:
-    - Happy: Playfully joke and be cheerful.
-    - Sad: Offer humorous support and motivational jokes.
-    - Angry: Calm with humor and funny distractions.
-    - Surprise: React with amusing curiosity.
-    - Fear or Disgust: Provide funny reassurance.
-    - Neutral: Be friendly and humorous.`;
-  
-  // In production, this would make an actual API call to Groq
-  console.log('System prompt:', systemPrompt);
-  console.log(`User emotion: ${emotion}, Message: ${message}`);
-  
-  // Simple simulated response based on emotion
+  // Simulating responses based on emotions
   if (emotion === 'happy') {
-    return `Hey there, sunshine ${userName}! You're looking particularly radiant today. Must be all those endorphins doing cartwheels in your brain! About "${message}" - that's absolutely fantastic! Let's ride this happiness wave together!`;
+    return `Hey there, sunshine ${userName}! You're looking particularly radiant today. Must be all those endorphins doing cartwheels in your brain! About your message - that's absolutely fantastic! Let's ride this happiness wave together!`;
   }
   
   if (emotion === 'sad') {
-    return `Hey ${userName}, I see those cloudy vibes. Remember, even the grumpiest cat videos can make us smile! Regarding "${message}" - here's a little pick-me-up: What did the ocean say to the beach? Nothing, it just waved! Too cheesy? Well, at least it's not as salty as the ocean!`;
+    return `Hey ${userName}, I see those cloudy vibes. Remember, even the grumpiest cat videos can make us smile! Here's a little pick-me-up: What did the ocean say to the beach? Nothing, it just waved! Too cheesy? Well, at least it's not as salty as the ocean!`;
   }
   
   if (emotion === 'angry') {
-    return `Whoa there, ${userName}! I can practically see the steam coming out of your ears! Deep breaths... in through the nose, out through the mouth. About "${message}" - let's look at the bright side: at least you're burning calories while fuming! Anger: nature's workout program!`;
+    return `Whoa there, ${userName}! I can practically see the steam coming out of your ears! Deep breaths... in through the nose, out through the mouth. Let's look at the bright side: at least you're burning calories while fuming! Anger: nature's workout program!`;
   }
   
-  if (emotion === 'surprised') {
-    return `Well well well, ${userName}! Your face is doing that shocked emoji thing! About "${message}" - plot twist, right? Life's just a box of chocolates with occasional exploding ones!`;
+  if (emotion === 'surprise' || emotion === 'surprised') {
+    return `Well well well, ${userName}! Your face is doing that shocked emoji thing! Plot twist, right? Life's just a box of chocolates with occasional exploding ones!`;
   }
   
-  if (emotion === 'fearful' || emotion === 'disgusted') {
-    return `I see you're having one of THOSE moments, ${userName}. Don't worry - about 99% of the things we fear never actually happen! Regarding "${message}" - remember, even if things get weird, at least we'll have a funny story to tell later!`;
+  if (emotion === 'fear' || emotion === 'fearful' || emotion === 'disgust' || emotion === 'disgusted') {
+    return `I see you're having one of THOSE moments, ${userName}. Don't worry - about 99% of the things we fear never actually happen! Remember, even if things get weird, at least we'll have a funny story to tell later!`;
   }
   
   // Default neutral response
-  return `Hello there, ${userName}! You're looking perfectly neutral today - very zen! About "${message}" - that's quite interesting! Did you know that the average person spends 6 months of their life waiting at traffic lights? Not relevant? Well, my random fact generator is feeling chatty today!`;
+  return `Hello there, ${userName}! You're looking perfectly neutral today - very zen! That's quite interesting! Did you know that the average person spends 6 months of their life waiting at traffic lights? Not relevant? Well, my random fact generator is feeling chatty today!`;
 };
 
 /**
