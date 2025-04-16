@@ -2,6 +2,7 @@
 import { ChatMessage, VoiceGender } from './types';
 import { Emotion } from '@/components/EmotionDetector';
 import { getChatbotResponse } from './chatbotApiService';
+import { toast } from '@/hooks/use-toast';
 
 // Configuration flag to determine whether to use the API or local implementation
 const USE_CHATBOT_API = true;
@@ -16,10 +17,17 @@ export const getAIResponse = async (
   // If using the chatbot API, call the API service
   if (USE_CHATBOT_API) {
     try {
+      console.log('Attempting to get response from chatbot API...');
       return await getChatbotResponse(message, emotion, chatHistory, userName);
     } catch (error) {
       console.error('Error from chatbot API, falling back to local implementation:', error);
-      // If API fails, fall back to local implementation
+      // If API fails, show a toast notification
+      toast({
+        title: "Connection Issue",
+        description: "Couldn't connect to knowledge base. Using local responses instead.",
+        variant: "destructive",
+      });
+      // Fall back to local implementation
     }
   }
   

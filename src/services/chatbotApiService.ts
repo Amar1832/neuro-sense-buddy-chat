@@ -1,5 +1,6 @@
 
 import { ChatMessage } from './types';
+import { Emotion } from '@/components/EmotionDetector';
 
 // API endpoint URL for Groq API
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -27,7 +28,7 @@ const API_CONFIG = {
  */
 export const getChatbotResponse = async (
   message: string,
-  emotion: string,
+  emotion: Emotion,
   chatHistory: ChatMessage[],
   userName: string = "Amar" // Default to Amar as seen in the Python code
 ): Promise<string> => {
@@ -67,27 +68,38 @@ export const getChatbotResponse = async (
       window.location.hostname === 'localhost' || 
       window.location.hostname.includes('lovableproject.com');
     
+    let responseText;
     // In production environment, make an actual API call
     if (!isDevelopment) {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: API_CONFIG.headers,
-        body: JSON.stringify(payload)
-      });
+      console.log('Production mode: Calling actual Groq API');
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: API_CONFIG.headers,
+          body: JSON.stringify(payload)
+        });
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        if (!response.ok) {
+          console.error(`API request failed with status ${response.status}`);
+          return simulateGroqApiCall(payload); // Fallback to simulation on API failure
+        }
+
+        const data = await response.json();
+        responseText = data.choices[0].message.content.trim();
+      } catch (error) {
+        console.error('Error in API call:', error);
+        return simulateGroqApiCall(payload); // Fallback to simulation on exception
       }
-
-      const data = await response.json();
-      return data.choices[0].message.content.trim();
     } else {
       // For development, use simulated response
       console.log('Development mode: Simulating Groq API response');
-      return simulateGroqApiCall(payload);
+      responseText = await simulateGroqApiCall(payload);
     }
+    
+    console.log('Successfully got response:', responseText.substring(0, 50) + '...');
+    return responseText;
   } catch (error) {
-    console.error('Error calling chatbot API:', error);
+    console.error('Error in chatbot service:', error);
     // Fallback to local response generation if API fails
     return getFallbackResponse(message, emotion, userName);
   }
@@ -135,5 +147,5 @@ const simulateGroqApiCall = async (payload: any): Promise<string> => {
  * Fallback response generator when API fails
  */
 const getFallbackResponse = (message: string, emotion: string, userName: string): string => {
-  return `I apologize, ${userName}, but I'm having trouble connecting to my knowledge base right now. Could we try again in a moment?`;
+  return `I apologize, ${userName}, but I'm having trouble connecting to my knowledge base right now. Could we try again in a moment? In the meantime, here's what I can tell you: you seem ${emotion}, and I'm here to chat about whatever's on your mind.`;
 };
