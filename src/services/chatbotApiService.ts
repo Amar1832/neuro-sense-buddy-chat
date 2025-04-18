@@ -23,8 +23,13 @@ export const getChatbotResponse = async (
   try {
     console.log('Sending request to Groq API with emotion:', emotion);
     
-    // Simple, focused system prompt
-    const systemPrompt = `You are a helpful AI assistant. Be concise and direct in your responses. Consider that the user is feeling ${emotion}.`;
+    // Determine if this is a greeting
+    const isGreeting = /^(hi|hello|hey|good morning|good evening|good afternoon|sup|what's up)/i.test(message.trim());
+    
+    // Adjust system prompt based on whether it's a greeting or regular question
+    const systemPrompt = isGreeting
+      ? `You are a friendly AI chatbot. The user ${userName} is feeling ${emotion}. Respond to their greeting warmly and naturally, acknowledging their emotional state if relevant. Keep it brief and casual.`
+      : `You are a helpful AI assistant chatting with ${userName}. Consider their current emotion (${emotion}) if relevant, but focus on answering their question directly and concisely. Respond like a supportive friend.`;
     
     const recentMessages = chatHistory.slice(-5).map(msg => ({
       role: msg.isUser ? 'user' : 'assistant',
@@ -38,8 +43,8 @@ export const getChatbotResponse = async (
         ...recentMessages,
         { role: "user", content: message }
       ],
-      temperature: 0.7,
-      max_tokens: 150,
+      temperature: isGreeting ? 0.8 : 0.7, // Slightly more creative for greetings
+      max_tokens: isGreeting ? 50 : 150, // Shorter responses for greetings
       top_p: 0.95
     };
 
@@ -68,6 +73,12 @@ export const getChatbotResponse = async (
 };
 
 const getFallbackResponse = (message: string, emotion: string): string => {
+  const isGreeting = /^(hi|hello|hey|good morning|good evening|good afternoon|sup|what's up)/i.test(message.trim());
+  
+  if (isGreeting) {
+    return `Hey! I notice you're feeling ${emotion}. How can I help you today?`;
+  }
+  
   return `I understand you're feeling ${emotion}. I'm having trouble connecting right now, but I'll do my best to help with your question: ${message}`;
 };
 
